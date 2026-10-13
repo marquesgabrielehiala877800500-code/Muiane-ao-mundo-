@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ehiala Bar - Apanha a Bebida</title>
+    <style>
+        body { 
+            background: #121212; 
+            color: #f1f1f1; 
+            text-align: center; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+        }
+        h1 { 
+            margin: 10px 0 5px 0; 
+            font-size: 1.4rem; 
+            color: #ffb703; 
+        }
+        #score-board { 
+            font-size: 1.1rem; 
+            margin-bottom: 10px; 
+            font-weight: bold;
+        }
+        canvas { 
+            background: #1e1e1e; 
+            display: block; 
+            margin: 0 auto; 
+            border-bottom: 4px solid #ffb703; 
+            touch-action: none; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        #instructions { 
+            font-size: 0.85rem; 
+            color: #aaa; 
+            margin-top: 10px; 
+            padding: 0 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🍺 Ehiala Bar: Apanha a Bebida! 🍺</h1>
+    <div id="score-board">Pontuação: <span id="score">0</span></div>
+    <canvas id="gameCanvas" width="360" height="480"></canvas>
+    <div id="instructions">Toca e arrasta no ecrã para mover o balcão e apanhar as bebidas!</div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreEl = document.getElementById("score");
+
+        let score = 0;
+        let basket = { x: 130, y: 420, width: 100, height: 18, color: "#ffb703" };
+        let items = [];
+
+        // Bebidas do Ehiala's Bar com pontuações diferentes
+        const itemTypes = [
+            { name: "2M", color: "#0077b6", points: 1 },
+            { name: "Manica", color: "#d90429", points: 2 },
+            { name: "Savanna", color: "#fb8500", points: 3 },
+            { name: "Amarula", color: "#4a4e69", points: 5 }
+        ];
+
+        function spawnItem() {
+            const type = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+            items.push({
+                x: Math.random() * (canvas.width - 35),
+                y: -40,
+                width: 35,
+                height: 45,
+                speed: 2.5 + Math.random() * 2,
+                type: type
+            });
+        }
+
+        // Controlo suave por toque no telemóvel
+        canvas.addEventListener("touchmove", (e) => {
+            let rect = canvas.getBoundingClientRect();
+            let touchX = e.touches[0].clientX - rect.left;
+            basket.x = touchX - basket.width / 2;
+            if (basket.x < 0) basket.x = 0;
+            if (basket.x > canvas.width - basket.width) basket.x = canvas.width - basket.width;
+            e.preventDefault();
+        }, { passive: false });
+
+        // Controlo por rato (para testes no PC)
+        canvas.addEventListener("mousemove", (e) => {
+            let rect = canvas.getBoundingClientRect();
+            let mouseX = e.clientX - rect.left;
+            basket.x = mouseX - basket.width / 2;
+            if (basket.x < 0) basket.x = 0;
+            if (basket.x > canvas.width - basket.width) basket.x = canvas.width - basket.width;
+        });
+
+        function update() {
+            for (let i = items.length - 1; i >= 0; i--) {
+                items[i].y += items[i].speed;
+
+                // Verificar colisão com o balcão/cesto
+                if (
+                    items[i].x < basket.x + basket.width &&
+                    items[i].x + items[i].width > basket.x &&
+                    items[i].y + items[i].height > basket.y &&
+                    items[i].y < basket.y + basket.height
+                ) {
+                    score += items[i].type.points;
+                    scoreEl.innerText = score;
+                    items.splice(i, 1);
+                    continue;
+                }
+
+                // Remover item se cair fora do ecrã
+                if (items[i].y > canvas.height) {
+                    items.splice(i, 1);
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = "#1e1e1e";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Desenhar o balcão
+            ctx.fillStyle = basket.color;
+            ctx.fillRect(basket.x, basket.y, basket.width, basket.height);
+            ctx.fillStyle = "#121212";
+            ctx.font = "bold 12px sans-serif";
+            ctx.fillText("BAR", basket.x + 36, basket.y + 13);
+
+            // Desenhar as bebidas a cair
+            items.forEach(item => {
+                ctx.fillStyle = item.type.color;
+                ctx.fillRect(item.x, item.y, item.width, item.height);
+                ctx.strokeStyle = "#fff";
+                ctx.strokeRect(item.x, item.y, item.width, item.height);
+
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 11px sans-serif";
+                ctx.fillText(item.type.name, item.x + 4, item.y + 26);
+            });
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        // Criar novos itens a cada 1.1 segundos
+        setInterval(spawnItem, 1100);
+        loop();
+    </script>
+</body>
+</html>
